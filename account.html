@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .account-wrap{max-width:820px;margin:24px auto 10px;padding:0 16px;}
+  .account-profile{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:22px;flex-wrap:wrap;}
+  .account-profile .avatar-circle{width:56px;height:56px;font-size:24px;}
+  .account-profile .name{font-family:'Baloo 2';font-size:1.2rem;color:var(--navy);margin:0;}
+  .account-profile .email{color:var(--slate);font-size:.88rem;}
+  .account-profile .profile-actions{display:flex; gap:8px; margin-left:auto;}
+  .account-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:18px;}
+  .account-link-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .account-link-card .ic{font-size:22px;}
+  .account-link-card .label{font-weight:700;color:var(--navy);font-size:.9rem;}
+  .edit-profile-panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-top:16px;}
+  .edit-photo-picker{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+  .edit-photo-preview{
+    width:64px;height:64px;border-radius:50%;background:var(--gold-light);border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:22px;color:var(--navy);font-family:'Baloo 2';flex-shrink:0;
+  }
+  .edit-photo-preview img{width:100%;height:100%;object-fit:cover;}
+  .edit-error{color:var(--danger);font-size:.82rem;margin-top:-8px;margin-bottom:14px;display:none;}
+  .edit-error.show{display:block;}
+</style>
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<main class="account-wrap">
+  <h2 class="section-title" id="account-title">👤 My account</h2>
+
+  <div class="account-profile" id="account-profile"></div>
+
+  <div class="edit-profile-panel hidden" id="edit-profile-panel">
+    <h3 style="margin-top:0;font-size:16px;">Edit profile</h3>
+    <form id="edit-profile-form">
+      <div class="edit-photo-picker">
+        <div class="edit-photo-preview" id="edit-photo-preview">👤</div>
+        <div>
+          <input type="file" id="edit-photo-input" accept="image/*">
+          <p class="form-hint">Profile picture (optional)</p>
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="edit-full-name">Full name</label>
+        <input type="text" id="edit-full-name" required>
+      </div>
+      <div class="form-field">
+        <label for="edit-dob">Date of birth (optional)</label>
+        <input type="date" id="edit-dob">
+      </div>
+      <p class="edit-error" id="edit-age-error">You must be at least 15 years old to use Golden Edge.</p>
+      <div class="form-field">
+        <label for="edit-country">Country (optional)</label>
+        <select id="edit-country"></select>
+      </div>
+      <div class="flex gap-8">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+        <button type="button" class="btn btn-outline" id="cancel-edit-btn">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="account-links">
+    <a class="account-link-card" href="orders.html">
+      <span class="ic">📦</span>
+      <span class="label">My Orders</span>
+    </a>
+    <a class="account-link-card" href="notifications.html">
+      <span class="ic">🔔</span>
+      <span class="label">Notifications</span>
+    </a>
+    <a class="account-link-card" href="cart.html">
+      <span class="ic">🛒</span>
+      <span class="label">My Cart</span>
+    </a>
+    <a class="account-link-card" href="products.html">
+      <span class="ic">🛍️</span>
+      <span class="label">Shop all</span>
+    </a>
+  </div>
+</main>
+
+<section class="grid-wrap">
+  <h2 class="section-title">🛍️ Goods you might like</h2>
+  <div class="product-grid" id="account-goods-grid"></div>
+</section>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  const accountUser = Auth.requireLogin();
+  let editPictureData = "";
+
+  function renderProfile() {
+    const user = Auth.currentUser();
+    if (!user) return;
+    const countryInfo = user.country ? getCountryByName(user.country) : null;
+    const firstName = (user.name || user.email.split("@")[0]).trim().split(" ")[0];
+    document.getElementById("account-title").textContent = `👋 Hi, ${firstName}`;
+    document.getElementById("account-profile").innerHTML = `
+      ${renderAvatar(user)}
+      <div>
+        <p class="name">${user.name}</p>
+        <div class="email">${user.email}</div>
+        ${user.country ? `<div class="email">🌍 ${user.country}${countryInfo ? ` (${countryInfo.dial})` : ""}</div>` : ""}
+        ${user.dob ? `<div class="email">🎂 ${new Date(user.dob).toLocaleDateString()}</div>` : ""}
+      </div>
+      <div class="profile-actions">
+        <button class="btn btn-outline btn-sm" id="edit-profile-btn">Edit profile</button>
+        <button class="btn btn-outline btn-sm" id="sign-out-btn">Sign out</button>
+      </div>
+    `;
+    document.getElementById("sign-out-btn")?.addEventListener("click", Auth.signOut);
+    document.getElementById("edit-profile-btn")?.addEventListener("click", openEditProfile);
+  }
+
+  function populateCountrySelect() {
+    const select = document.getElementById("edit-country");
+    select.innerHTML = `<option value="">Not set</option>` + AFRICAN_COUNTRIES.map(c => `<option value="${c.name}">${c.name} (${c.dial})</option>`).join("");
+  }
+
+  function openEditProfile() {
+    const user = Auth.currentUser();
+    if (!user) return;
+    document.getElementById("edit-full-name").value = user.name || "";
+    document.getElementById("edit-dob").value = user.dob || "";
+    document.getElementById("edit-country").value = user.country || "";
+    editPictureData = user.picture || "";
+    document.getElementById("edit-photo-preview").innerHTML = editPictureData
+      ? `<img src="${editPictureData}" alt="Profile preview">`
+      : "👤";
+    document.getElementById("edit-age-error").classList.remove("show");
+    document.getElementById("edit-profile-panel").classList.remove("hidden");
+    document.getElementById("edit-profile-panel").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  document.getElementById("cancel-edit-btn").addEventListener("click", () => {
+    document.getElementById("edit-profile-panel").classList.add("hidden");
+  });
+
+  document.getElementById("edit-photo-input").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 300;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        editPictureData = canvas.toDataURL("image/jpeg", 0.85);
+        document.getElementById("edit-photo-preview").innerHTML = `<img src="${editPictureData}" alt="Profile preview">`;
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById("edit-profile-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const dob = document.getElementById("edit-dob").value;
+    const age = dob ? Auth.calculateAge(dob) : null;
+    const ageError = document.getElementById("edit-age-error");
+    if (dob && (age === null || age < MIN_SIGNUP_AGE)) {
+      ageError.classList.add("show");
+      return;
+    }
+    ageError.classList.remove("show");
+
+    Auth.completeProfile({
+      fullName: document.getElementById("edit-full-name").value.trim(),
+      picture: editPictureData,
+      dob: dob,
+      country: document.getElementById("edit-country").value
+    });
+
+    document.getElementById("edit-profile-panel").classList.add("hidden");
+    renderProfile();
+    Toast.show("Profile updated");
+  });
+
+  populateCountrySelect();
+  renderProfile();
+  renderGoodsGrid("account-goods-grid", { limit: 10 });
+</script>
+</body>
+</html>

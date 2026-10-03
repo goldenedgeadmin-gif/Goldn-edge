@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop All Products — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<main class="grid-wrap">
+  <h2 class="section-title" id="grid-title">🛍️ All products</h2>
+  <div class="product-grid" id="product-grid"></div>
+  <div class="empty-state hidden" id="empty-state">
+    <h3>No products match</h3>
+    <p>Try a different category or search term.</p>
+    <a href="products.html" class="btn btn-outline mt-24">Clear filters</a>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const activeCategory = params.get("category") || "";
+  const searchQuery = (params.get("q") || "").toLowerCase();
+
+  function renderGrid() {
+    let products = DB.getProducts();
+    if (activeCategory) products = products.filter(p => p.category === activeCategory);
+    if (searchQuery) products = products.filter(p => p.name.toLowerCase().includes(searchQuery) || p.desc.toLowerCase().includes(searchQuery));
+
+    const titleEl = document.getElementById("grid-title");
+    if (activeCategory) {
+      titleEl.textContent = activeCategory;
+    } else if (searchQuery) {
+      titleEl.textContent = `🔍 Results for "${params.get("q")}"`;
+    } else {
+      titleEl.textContent = "🛍️ All products";
+    }
+
+    const grid = document.getElementById("product-grid");
+    const empty = document.getElementById("empty-state");
+    if (products.length === 0) {
+      grid.innerHTML = "";
+      empty.classList.remove("hidden");
+    } else {
+      empty.classList.add("hidden");
+      grid.innerHTML = products.map(productCardHTML).join("");
+    }
+  }
+
+  renderGrid();
+</script>
+</body>
+</html>

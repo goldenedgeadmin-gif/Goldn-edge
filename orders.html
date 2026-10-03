@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Orders — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<main class="orders-wrap">
+  <h2 class="section-title">📦 My orders</h2>
+
+  <div id="orders-list"></div>
+  <div class="empty-state hidden" id="orders-empty">
+    <h3>No orders yet</h3>
+    <p>Once you place an order, it will show up here.</p>
+    <a href="products.html" class="btn btn-primary mt-24">Start shopping</a>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  const user = Auth.requireLogin();
+
+  function orderCard(o) {
+    return `
+      <div class="order-card">
+        <div class="order-head">
+          <strong class="mono">${o.id}</strong>
+          <span class="status-pill">${o.status.toUpperCase()}</span>
+        </div>
+        <p class="text-slate" style="font-size:.8rem;margin:4px 0 8px;">${new Date(o.createdAt).toLocaleString()}</p>
+        <p style="font-size:.86rem;margin:0 0 8px;">${o.items.map(i => `${i.name}${i.color ? ` (${i.color})` : ""} × ${i.qty}`).join(", ")}</p>
+        <p style="font-size:.8rem;color:var(--slate);margin:0 0 12px;">Delivering to: ${o.address}, ${o.city}, ${o.state}${o.country ? `, ${o.country}` : ""}</p>
+        <div class="order-line order-line-total" style="border-top:1px dashed var(--border);"><span>Total</span><span class="mono">${formatMoney(o.total)}</span></div>
+        <a href="${buildOrderWhatsAppLink(o)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm btn-block mt-10">Send details on WhatsApp</a>
+      </div>
+    `;
+  }
+
+  function render() {
+    if (!user) return;
+    const orders = DB.getOrdersForUser(user.email);
+    const list = document.getElementById("orders-list");
+    const empty = document.getElementById("orders-empty");
+    if (orders.length === 0) {
+      list.innerHTML = "";
+      empty.classList.remove("hidden");
+    } else {
+      empty.classList.add("hidden");
+      list.innerHTML = orders.map(orderCard).join("");
+    }
+    const justPaid = new URLSearchParams(window.location.search).get("justPaid");
+    if (justPaid) Toast.show("Payment successful! Your order has been placed.");
+  }
+
+  render();
+</script>
+</body>
+</html>

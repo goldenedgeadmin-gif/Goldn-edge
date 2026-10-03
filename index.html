@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golden Edge — Fast Delivery, Easy Shopping</title>
+<meta name="description" content="Shop cars, phones, TVs, bikes, laptops, tablets and kitchen appliances on Golden Edge — fast delivery, easy shopping. Payments in Naira.">
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<div class="flash-banner">
+  <div class="title">⚡ Fast delivery, easy shopping — every category, today</div>
+  <div class="timer">Ends in <span id="flashTimer" class="timer"></span></div>
+</div>
+
+<div class="coupon-strip">
+  <span class="coupon-chip">🎟️ Editable shipping fee — set by us, shown clearly at checkout</span>
+  <span class="coupon-chip">🎟️ Secure Paystack payments in Naira</span>
+  <span class="coupon-chip">🎟️ Cars, electronics, bikes &amp; kitchen appliances — one store</span>
+</div>
+
+<main class="grid-wrap">
+  <h2 class="section-title">🔥 Featured products</h2>
+  <div class="product-grid" id="featured-grid"></div>
+  <div class="center mt-24">
+    <a href="products.html" class="btn btn-dark">View all products</a>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  startFlashCountdown("flashTimer");
+  renderGoodsGrid("featured-grid", { limit: 10 });
+</script>
+</body>
+</html>

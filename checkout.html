@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<main class="checkout-wrap">
+  <div style="grid-column:1/-1;">
+    <h2 class="section-title">💳 Checkout</h2>
+    <div class="price-timer">Goods price will be updated in <span id="priceTimer" class="timer"></span></div>
+  </div>
+
+  <div class="checkout-panel">
+    <h3>📦 Delivery details</h3>
+    <form id="checkout-form">
+      <div class="form-field">
+        <label for="country">Country</label>
+        <select id="country" required>
+          <option value="" disabled selected>Select your country</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="email">Email (for your receipt)</label>
+        <input type="email" id="email" required>
+      </div>
+      <div class="form-field">
+        <label for="state">State</label>
+        <select id="state" required disabled>
+          <option value="" disabled selected>Select a country first</option>
+        </select>
+        <input type="text" id="state-text" class="hidden" placeholder="Enter your state / region">
+      </div>
+      <div class="form-field">
+        <label for="lga">Local Government</label>
+        <select id="lga" required disabled>
+          <option value="" disabled selected>Select a state first</option>
+        </select>
+        <input type="text" id="lga-text" class="hidden" placeholder="Enter your city / local area">
+      </div>
+      <div class="form-field">
+        <label for="address">Home address</label>
+        <textarea id="address" rows="3" required placeholder="Street address, house number, landmark…"></textarea>
+      </div>
+      <div class="form-field">
+        <label for="full-name">Full name</label>
+        <input type="text" id="full-name" required>
+      </div>
+      <div class="form-field">
+        <label for="phone">Phone number</label>
+        <div style="display:flex; gap:8px;">
+          <span id="phone-dial-code" class="mono" style="flex-shrink:0; background:var(--gold-light); border:1px solid var(--border); border-radius:6px; padding:0 12px; display:flex; align-items:center; font-weight:700; color:var(--navy);">+___</span>
+          <input type="tel" id="phone" required style="flex:1;">
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="whatsapp" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span>WhatsApp number</span>
+          <span style="display:flex;align-items:center;gap:5px;font-weight:600;color:var(--slate);font-size:12px;cursor:pointer;">
+            <input type="checkbox" id="whatsapp-same" style="width:15px;height:15px;accent-color:var(--gold-dark);"> Same as phone
+          </span>
+        </label>
+        <div style="display:flex; gap:8px;">
+          <span id="whatsapp-dial-code" class="mono" style="flex-shrink:0; background:var(--gold-light); border:1px solid var(--border); border-radius:6px; padding:0 12px; display:flex; align-items:center; font-weight:700; color:var(--navy);">+___</span>
+          <input type="tel" id="whatsapp" required style="flex:1;">
+        </div>
+        <p class="form-hint">Country code is set from the country you picked above.</p>
+      </div>
+    </form>
+  </div>
+
+  <div class="checkout-panel">
+    <h3>🧾 Order summary</h3>
+    <div id="summary-lines" style="font-size:.86rem;margin-bottom:10px;"></div>
+    <div class="order-line"><span class="name">Subtotal</span><span class="mono" id="sum-subtotal">—</span></div>
+    <div class="order-line"><span class="name">Shipping fee</span><span class="mono" id="sum-shipping">—</span></div>
+    <div class="order-line order-line-total"><span>Total</span><span class="mono" id="sum-total">—</span></div>
+    <p class="form-hint" id="charge-note" style="margin-top:6px;"></p>
+    <button class="btn btn-primary btn-block mt-24" id="pay-btn">Pay</button>
+    <p class="form-hint center mt-24">Payments are processed securely by Paystack. Golden Edge never sees your card details.</p>
+  </div>
+</main>
+
+<div class="processing-overlay" id="processing-overlay">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Opening secure Paystack checkout…</div>
+</div>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>startFlashCountdown("priceTimer");</script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+  const user = Auth.requireLogin();
+
+  function selectedCountry() {
+    return document.getElementById("country").value || "";
+  }
+
+  function renderSummary() {
+    const lines = DB.selectedCartWithDetails();
+    if (lines.length === 0) {
+      window.location.href = "cart.html";
+      return;
+    }
+    document.getElementById("summary-lines").innerHTML = lines.map(l => `
+      <div class="flex" style="justify-content:space-between;padding:6px 0;">
+        <span>${l.product.name}${l.color ? ` (${l.color})` : ""} × ${l.qty}</span>
+        <span class="mono">${formatMoney(l.product.price * l.qty)}</span>
+      </div>
+    `).join("");
+    const subtotal = DB.selectedCartSubtotal();
+    const shipping = DB.getShippingFee(selectedCountry());
+    document.getElementById("sum-subtotal").textContent = formatMoney(subtotal);
+    document.getElementById("sum-shipping").textContent = shipping === 0 ? "FREE" : formatMoney(shipping);
+    document.getElementById("sum-total").textContent = formatMoney(subtotal + shipping);
+    document.getElementById("charge-note").textContent = `You'll be charged ${formatMoney(subtotal + shipping)} via Paystack.`;
+  }
+
+  if (user) {
+    document.getElementById("email").value = user.email;
+    document.getElementById("full-name").value = user.name || "";
+  }
+
+  /** Populates the country dropdown once, defaulting to the shopper's
+   *  profile country (set at sign-up) if they have one — but they can
+   *  change it here, and everything below (state, local government,
+   *  dial codes, shipping fee) follows whatever is picked on THIS page. */
+  function setupCountryField() {
+    const countrySelect = document.getElementById("country");
+    countrySelect.innerHTML = `<option value="" disabled ${user && user.country ? "" : "selected"}>Select your country</option>` +
+      AFRICAN_COUNTRIES.map(c => `<option value="${c.name}" ${user && user.country === c.name ? "selected" : ""}>${c.name}</option>`).join("");
+    countrySelect.addEventListener("change", () => {
+      setupDialCodes();
+      setupStateField();
+      renderSummary();
+    });
+    if (user && user.country) { setupDialCodes(); setupStateField(); }
+  }
+
+  /** Sets both dial-code chips from the country picked above. */
+  function setupDialCodes() {
+    const dial = (getCountryByName(selectedCountry()) || {}).dial || "+___";
+    document.getElementById("phone-dial-code").textContent = dial;
+    document.getElementById("whatsapp-dial-code").textContent = dial;
+  }
+
+  /** State dropdown — populated from the country picked above. Falls
+   *  back to a free-text field for a country with no predefined list. */
+  function setupStateField() {
+    const stateSelect = document.getElementById("state");
+    const stateText = document.getElementById("state-text");
+    const country = selectedCountry();
+    const states = country ? STATES_BY_COUNTRY[country] : null;
+
+    stateSelect.disabled = false;
+    if (states && states.length) {
+      stateSelect.innerHTML = `<option value="" disabled selected>Select your state</option>` +
+        states.map(s => `<option value="${s}">${s}</option>`).join("");
+      stateSelect.classList.remove("hidden");
+      stateSelect.required = true;
+      stateText.classList.add("hidden");
+      stateText.required = false;
+    } else {
+      stateSelect.classList.add("hidden");
+      stateSelect.required = false;
+      stateText.classList.remove("hidden");
+      stateText.required = true;
+      stateText.value = "";
+    }
+    setupLgaField(); // reset the LGA/city field whenever the state list changes
+  }
+
+  /** Local Government / city dropdown — populated from the state picked
+   *  above (Nigeria only, for now). Falls back to a free-text "City /
+   *  Local area" field for any state with no LGA list. */
+  function setupLgaField() {
+    const lgaSelect = document.getElementById("lga");
+    const lgaText = document.getElementById("lga-text");
+    const country = selectedCountry();
+    const state = document.getElementById("state").classList.contains("hidden")
+      ? document.getElementById("state-text").value.trim()
+      : document.getElementById("state").value;
+    const lgas = (country && state && CITIES_BY_STATE[country]) ? CITIES_BY_STATE[country][state] : null;
+
+    if (lgas && lgas.length) {
+      lgaSelect.disabled = false;
+      lgaSelect.innerHTML = `<option value="" disabled selected>Select your local government</option>` +
+        lgas.map(l => `<option value="${l}">${l}</option>`).join("");
+      lgaSelect.classList.remove("hidden");
+      lgaSelect.required = true;
+      lgaText.classList.add("hidden");
+      lgaText.required = false;
+    } else {
+      lgaSelect.disabled = true;
+      lgaSelect.classList.add("hidden");
+      lgaSelect.required = false;
+      lgaText.classList.remove("hidden");
+      lgaText.required = !!state; // only required once a state/country is chosen
+      lgaText.value = "";
+      lgaText.placeholder = state ? "Enter your city / local area" : "Select a state first";
+    }
+  }
+
+  function getStateValue() {
+    const stateSelect = document.getElementById("state");
+    const stateText = document.getElementById("state-text");
+    return stateSelect.classList.contains("hidden") ? stateText.value.trim() : stateSelect.value;
+  }
+  function getLgaValue() {
+    const lgaSelect = document.getElementById("lga");
+    const lgaText = document.getElementById("lga-text");
+    return lgaSelect.classList.contains("hidden") ? lgaText.value.trim() : lgaSelect.value;
+  }
+
+  document.getElementById("state").addEventListener("change", setupLgaField);
+  document.getElementById("state-text").addEventListener("input", setupLgaField);
+
+  /** WhatsApp number — "Same as phone" mirrors the phone field live and
+   *  locks WhatsApp's own input so the two can't drift apart by accident. */
+  function setupWhatsAppSync() {
+    const sameBox = document.getElementById("whatsapp-same");
+    const phone = document.getElementById("phone");
+    const whatsapp = document.getElementById("whatsapp");
+    function sync() {
+      if (sameBox.checked) {
+        whatsapp.value = phone.value;
+        whatsapp.readOnly = true;
+      } else {
+        whatsapp.readOnly = false;
+      }
+    }
+    sameBox.addEventListener("change", sync);
+    phone.addEventListener("input", () => { if (sameBox.checked) whatsapp.value = phone.value; });
+  }
+
+  setupCountryField();
+  setupWhatsAppSync();
+
+  document.getElementById("pay-btn").addEventListener("click", () => {
+    const form = document.getElementById("checkout-form");
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const paystackKey = DB.getPaystackPublicKey() || GOLDENEDGE_CONFIG.PAYSTACK_PUBLIC_KEY;
+    if (!paystackKey || paystackKey.includes("XXXX")) {
+      Toast.show("Add a Paystack public key from Admin → Payment Settings to enable payment.");
+      return;
+    }
+
+    const subtotal = DB.selectedCartSubtotal();
+    const shipping = DB.getShippingFee(selectedCountry());
+    const total = subtotal + shipping;
+    const email = document.getElementById("email").value;
+
+    const handler = PaystackPop.setup({
+      key: paystackKey,
+      email: email,
+      amount: Math.round(total * 100), // kobo
+      currency: GOLDENEDGE_CONFIG.CURRENCY_CODE,
+      ref: "GE-" + Date.now(),
+      metadata: {
+        custom_fields: [
+          { display_name: "Customer", variable_name: "customer_name", value: document.getElementById("full-name").value }
+        ]
+      },
+      callback: function (response) {
+        document.getElementById("processing-overlay").classList.remove("show");
+        const order = {
+          id: response.reference,
+          customerEmail: email,
+          customerName: document.getElementById("full-name").value,
+          phone: `${document.getElementById("phone-dial-code").textContent} ${document.getElementById("phone").value}`.trim(),
+          whatsapp: `${document.getElementById("whatsapp-dial-code").textContent} ${document.getElementById("whatsapp").value}`.trim(),
+          address: document.getElementById("address").value,
+          city: getLgaValue(),
+          state: getStateValue(),
+          country: selectedCountry(),
+          items: DB.selectedCartWithDetails().map(l => ({ id: l.product.id, name: l.product.name, price: l.product.price, qty: l.qty, color: l.color || null })),
+          subtotal: subtotal,
+          shippingFee: shipping,
+          total: total,
+          status: "paid",
+          paystackRef: response.reference,
+          createdAt: new Date().toISOString()
+        };
+        DB.createOrder(order);
+        DB.clearSelectedFromCart();
+        window.location.href = `order-success.html?order=${encodeURIComponent(order.id)}`;
+      },
+      onClose: function () {
+        document.getElementById("processing-overlay").classList.remove("show");
+        Toast.show("Payment window closed");
+      }
+    });
+    document.getElementById("processing-overlay").classList.add("show");
+    handler.openIframe();
+  });
+
+  renderSummary();
+</script>
+</body>
+</html>

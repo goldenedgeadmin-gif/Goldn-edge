@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Cart — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .cart-select-all{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:10px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--navy);}
+  .cart-select-all input{width:19px;height:19px;accent-color:var(--gold-dark);cursor:pointer;}
+  .cart-line-check{width:19px;height:19px;accent-color:var(--gold-dark);cursor:pointer;flex-shrink:0;margin-top:2px;}
+</style>
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<main class="checkout-wrap">
+  <div style="grid-column:1/-1;">
+    <h2 class="section-title">🛒 Review your order</h2>
+    <div class="price-timer">Goods price will be updated in <span id="priceTimer" class="timer"></span></div>
+  </div>
+
+  <div class="checkout-panel">
+    <label class="cart-select-all" id="select-all-row">
+      <input type="checkbox" id="select-all-checkbox">
+      <span>Select all items</span>
+    </label>
+    <div id="cart-lines"></div>
+    <div id="cart-empty" class="empty-state hidden">
+      <h3>Your cart is empty</h3>
+      <p>Browse the shop to find something you'll love.</p>
+      <a href="products.html" class="btn btn-primary mt-24">Start shopping</a>
+    </div>
+  </div>
+
+  <div class="checkout-panel" id="summary-panel">
+    <h3>🧾 Order summary</h3>
+    <p class="form-hint" id="selection-note" style="margin-bottom:10px;"></p>
+    <div class="order-line"><span class="name">Subtotal (selected items)</span><span class="mono" id="sum-subtotal">—</span></div>
+    <div class="order-line"><span class="name">Shipping fee</span><span class="mono" id="sum-shipping">—</span></div>
+    <div class="order-line order-line-total"><span>Total</span><span class="mono" id="sum-total">—</span></div>
+    <a href="checkout.html" class="btn btn-primary btn-block mt-24" id="checkout-btn">Proceed to checkout</a>
+  </div>
+</main>
+
+<section class="grid-wrap">
+  <h2 class="section-title">🛍️ More goods to explore</h2>
+  <div class="product-grid" id="cart-goods-grid"></div>
+</section>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>startFlashCountdown("priceTimer");</script>
+<script>
+  const cartUser = Auth.requireLogin();
+
+  function lineHTML(line) {
+    const p = line.product;
+    const colorAttr = line.color ? `, ${JSON.stringify(line.color)}` : ", null";
+    return `
+      <div class="cart-line" data-id="${p.id}">
+        <div class="cart-line-top">
+          <input type="checkbox" class="cart-line-check" ${line.selected ? "checked" : ""} onchange="toggleSelected('${p.id}', this.checked${colorAttr})" aria-label="Include ${p.name} in checkout">
+          <img src="${p.image}" alt="${p.name}">
+          <div class="cart-line-info">
+            <div class="name">${p.name}</div>
+            <div class="text-slate" style="font-size:.8rem;">${p.category}${line.color ? ` · Color: ${line.color}` : ""}</div>
+            <div class="mono" style="margin-top:4px;color:var(--navy);font-weight:700;">${formatMoney(p.price)}</div>
+          </div>
+        </div>
+        <div class="cart-line-actions">
+          <input type="number" min="0" max="${p.stock}" class="qty-input" value="${line.qty}" onchange="setQty('${p.id}', this.value${colorAttr})" aria-label="Quantity for ${p.name}">
+          <button type="button" class="btn btn-outline btn-sm" onclick="removeLine('${p.id}'${colorAttr})" aria-label="Remove ${p.name} from cart">🗑 Remove</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function render() {
+    const lines = DB.cartWithDetails();
+    const selectedLines = lines.filter(l => l.selected);
+    const linesEl = document.getElementById("cart-lines");
+    const emptyEl = document.getElementById("cart-empty");
+    const checkoutBtn = document.getElementById("checkout-btn");
+    const selectAllRow = document.getElementById("select-all-row");
+    const selectAllCheckbox = document.getElementById("select-all-checkbox");
+
+    if (lines.length === 0) {
+      linesEl.innerHTML = "";
+      emptyEl.classList.remove("hidden");
+      checkoutBtn.classList.add("hidden");
+      selectAllRow.classList.add("hidden");
+    } else {
+      emptyEl.classList.add("hidden");
+      selectAllRow.classList.remove("hidden");
+      linesEl.innerHTML = lines.map(lineHTML).join("");
+      selectAllCheckbox.checked = selectedLines.length === lines.length;
+    }
+
+    const subtotal = DB.selectedCartSubtotal();
+    const shipping = selectedLines.length ? DB.getShippingFee(cartUser && cartUser.country) : 0;
+    const total = subtotal + shipping;
+
+    document.getElementById("sum-subtotal").textContent = formatMoney(subtotal);
+    document.getElementById("sum-shipping").textContent = shipping === 0 && selectedLines.length ? "FREE" : formatMoney(shipping);
+    document.getElementById("sum-total").textContent = formatMoney(total);
+
+    const noteEl = document.getElementById("selection-note");
+    if (lines.length === 0) {
+      noteEl.textContent = "";
+    } else if (selectedLines.length === 0) {
+      noteEl.textContent = "No items selected — tick the box next to an item to include it.";
+    } else {
+      noteEl.textContent = `${selectedLines.length} of ${lines.length} item${lines.length === 1 ? "" : "s"} selected.`;
+    }
+
+    if (lines.length > 0) {
+      checkoutBtn.classList.remove("hidden");
+      if (selectedLines.length === 0) {
+        checkoutBtn.textContent = "Select items to checkout";
+        checkoutBtn.setAttribute("aria-disabled", "true");
+        checkoutBtn.style.pointerEvents = "none";
+        checkoutBtn.style.opacity = ".5";
+      } else {
+        checkoutBtn.textContent = `Proceed to checkout — ${formatMoney(total)}`;
+        checkoutBtn.removeAttribute("aria-disabled");
+        checkoutBtn.style.pointerEvents = "";
+        checkoutBtn.style.opacity = "";
+      }
+    }
+
+    refreshCartCount();
+  }
+
+  function toggleSelected(id, checked, color) {
+    DB.setLineSelected(id, color, checked);
+    render();
+  }
+
+  function setQty(id, val, color) {
+    DB.updateCartQty(id, parseInt(val, 10) || 0, color);
+    render();
+  }
+  function removeLine(id, color) {
+    DB.removeFromCart(id, color);
+    render();
+  }
+
+  document.getElementById("select-all-checkbox").addEventListener("change", (e) => {
+    const checked = e.target.checked;
+    DB.getCart().forEach(line => DB.setLineSelected(line.productId, line.color, checked));
+    render();
+  });
+
+  render();
+
+  renderGoodsGrid("cart-goods-grid", {
+    limit: 10,
+    excludeIds: DB.getCart().map(line => line.productId)
+  });
+</script>
+</body>
+</html>

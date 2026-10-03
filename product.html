@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .product-detail-wrap{max-width:var(--maxw); margin:20px auto 60px; padding:0 16px; display:grid; grid-template-columns:1fr; gap:28px;}
+  @media (min-width:820px){.product-detail-wrap{grid-template-columns:1fr 1fr;}}
+  .breadcrumb{max-width:var(--maxw); margin:16px auto 0; padding:0 16px; font-size:12.5px; color:var(--slate);}
+  .breadcrumb a{color:var(--navy); font-weight:700;}
+  .gallery-main{background:#fff; border:1px solid var(--border); border-radius:var(--radius); aspect-ratio:1/1; overflow:hidden; margin-bottom:10px;}
+  .gallery-main img{width:100%; height:100%; object-fit:cover;}
+  .gallery-thumbs{display:flex; gap:8px;}
+  .gallery-thumbs button{
+    width:64px; height:64px; padding:0; border-radius:6px; overflow:hidden; border:2px solid transparent; background:#fff; flex-shrink:0;
+  }
+  .gallery-thumbs button.active{border-color:var(--gold);}
+  .gallery-thumbs img{width:100%; height:100%; object-fit:cover;}
+  .pd-panel{background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:22px;}
+  .pd-cat{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold-dark); font-weight:800;}
+  .pd-name{font-size:22px; margin:6px 0 10px;}
+  .pd-price{font-family:'JetBrains Mono'; font-weight:700; color:var(--navy); font-size:24px; margin-bottom:10px;}
+  .pd-availability{font-size:13px; font-weight:700; margin-bottom:16px;}
+  .pd-availability.in-stock{color:var(--green);}
+  .pd-availability.low-stock{color:var(--danger);}
+  .pd-section-label{font-size:12.5px; font-weight:800; color:var(--navy); margin:16px 0 8px;}
+  .color-swatches{display:flex; gap:10px; flex-wrap:wrap;}
+  .color-swatch{
+    display:flex; flex-direction:column; align-items:center; gap:5px; background:none; border:none; font-size:11px; color:var(--slate);
+  }
+  .color-swatch .dot{width:32px; height:32px; border-radius:50%; border:2px solid var(--border); box-shadow:0 0 0 2px transparent;}
+  .color-swatch.active .dot{box-shadow:0 0 0 2px var(--gold);}
+  .color-swatch.active{color:var(--navy); font-weight:800;}
+  .qty-stepper{display:flex; align-items:center; gap:0; border:1px solid var(--border); border-radius:8px; width:fit-content;}
+  .qty-stepper button{background:var(--gold-light); border:none; width:36px; height:36px; font-size:16px; font-weight:800; color:var(--navy);}
+  .qty-stepper input{width:50px; border:none; text-align:center; font-size:14px; font-weight:700;}
+  .pd-actions{display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;}
+  .pd-actions .btn{flex:1; min-width:160px;}
+  .pd-desc{margin-top:24px; font-size:13.5px; line-height:1.6; color:#333;}
+</style>
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<nav class="breadcrumb">
+  <a href="index.html">Home</a> &rsaquo;
+  <a href="products.html" id="crumb-category">Shop</a> &rsaquo;
+  <span id="crumb-name">Product</span>
+</nav>
+
+<main class="product-detail-wrap" id="product-detail-wrap">
+  <!-- filled in by script -->
+</main>
+
+<div class="empty-state hidden" id="not-found">
+  <h3>Product not found</h3>
+  <p>It may have been removed. Browse the shop to find something else.</p>
+  <a href="products.html" class="btn btn-primary mt-24">Back to shop</a>
+</div>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  const productId = new URLSearchParams(window.location.search).get("id");
+  const product = productId ? DB.getProduct(productId) : null;
+  let selectedColor = null;
+  let selectedQty = 1;
+
+  function render() {
+    if (!product) {
+      document.getElementById("product-detail-wrap").remove();
+      document.getElementById("not-found").classList.remove("hidden");
+      document.querySelector(".breadcrumb").remove();
+      return;
+    }
+
+    document.title = `${product.name} — Golden Edge`;
+    document.getElementById("crumb-category").textContent = product.category;
+    document.getElementById("crumb-category").href = `products.html?category=${encodeURIComponent(product.category)}`;
+    document.getElementById("crumb-name").textContent = product.name;
+
+    const images = getProductImages(product);
+    const colors = getProductColors(product);
+    selectedColor = colors.length ? colors[0].name : null;
+    const availability = getAvailability(product);
+
+    document.getElementById("product-detail-wrap").innerHTML = `
+      <div>
+        <div class="gallery-main">
+          ${isVideoSrc(images[0])
+            ? `<video id="gallery-main-video" src="${images[0]}" controls style="width:100%;height:100%;object-fit:cover;"></video>`
+            : `<img id="gallery-main-img" src="${images[0]}" alt="${product.name}">`}
+        </div>
+        ${images.length > 1 ? `
+          <div class="gallery-thumbs" id="gallery-thumbs">
+            ${images.map((img, i) => `
+              <button data-src="${img}" data-video="${isVideoSrc(img)}" class="${i === 0 ? "active" : ""}">
+                ${isVideoSrc(img)
+                  ? `<video src="${img}" muted style="width:100%;height:100%;object-fit:cover;"></video>`
+                  : `<img src="${img}" alt="${product.name} view ${i + 1}">`}
+              </button>
+            `).join("")}
+          </div>
+        ` : ""}
+      </div>
+
+      <div class="pd-panel">
+        <span class="pd-cat">${product.category}</span>
+        ${product.badge ? `<span class="product-badge" style="position:static;display:inline-block;margin-left:8px;">${product.badge}</span>` : ""}
+        <h1 class="pd-name">${product.name}</h1>
+        <div class="pd-price mono">${formatMoney(product.price)}</div>
+        <div class="pd-availability ${availability.low ? "low-stock" : "in-stock"}">${availability.text}</div>
+        <div class="text-slate" style="font-size:13px;margin-bottom:16px;">🚚 ${(() => {
+          const shopper = Auth.currentUser();
+          const fee = DB.getShippingFee(shopper && shopper.country);
+          return fee === 0
+            ? "<strong style='color:var(--green);'>Free shipping</strong>"
+            : `Shipping: <strong class="mono" style="color:var(--navy);">${formatMoney(fee)}</strong> at checkout${shopper && shopper.country ? "" : " (based on your country)"}`;
+        })()}</div>
+
+        ${colors.length ? `
+          <div class="pd-section-label">Color: <span id="selected-color-label">${colors[0].name}</span></div>
+          <div class="color-swatches" id="color-swatches">
+            ${colors.map((c, i) => `
+              <button class="color-swatch ${i === 0 ? "active" : ""}" data-name="${c.name}">
+                <span class="dot" style="background:${c.hex};"></span>
+                ${c.name}
+              </button>
+            `).join("")}
+          </div>
+        ` : ""}
+
+        <div class="pd-section-label">Quantity</div>
+        <div class="qty-stepper">
+          <button type="button" id="qty-minus">&minus;</button>
+          <input type="number" id="qty-input" value="1" min="1" max="${product.stock || 1}">
+          <button type="button" id="qty-plus">&plus;</button>
+        </div>
+
+        <div class="pd-actions">
+          <button class="btn btn-dark" id="add-to-cart-btn" ${product.stock === 0 ? "disabled" : ""}>Add to cart</button>
+          <button class="btn btn-primary" id="order-now-btn" ${product.stock === 0 ? "disabled" : ""}>Order now</button>
+        </div>
+
+        <p class="pd-desc">${product.desc}</p>
+      </div>
+    `;
+
+    wireInteractions();
+  }
+
+  function wireInteractions() {
+    const thumbs = document.querySelectorAll("#gallery-thumbs button");
+    thumbs.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const galleryMain = document.querySelector(".gallery-main");
+        const isVideo = btn.dataset.video === "true";
+        galleryMain.innerHTML = isVideo
+          ? `<video id="gallery-main-video" src="${btn.dataset.src}" controls style="width:100%;height:100%;object-fit:cover;"></video>`
+          : `<img id="gallery-main-img" src="${btn.dataset.src}" alt="${product.name}">`;
+        thumbs.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    const swatches = document.querySelectorAll("#color-swatches .color-swatch");
+    swatches.forEach(btn => {
+      btn.addEventListener("click", () => {
+        selectedColor = btn.dataset.name;
+        swatches.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("selected-color-label").textContent = selectedColor;
+      });
+    });
+
+    const qtyInput = document.getElementById("qty-input");
+    document.getElementById("qty-minus").addEventListener("click", () => {
+      qtyInput.value = Math.max(1, (parseInt(qtyInput.value, 10) || 1) - 1);
+    });
+    document.getElementById("qty-plus").addEventListener("click", () => {
+      const max = product.stock || 1;
+      qtyInput.value = Math.min(max, (parseInt(qtyInput.value, 10) || 1) + 1);
+    });
+
+    document.getElementById("add-to-cart-btn").addEventListener("click", () => {
+      const qty = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+      DB.addToCart(product.id, qty, selectedColor);
+      refreshCartCount();
+      Toast.show("Added to cart");
+    });
+
+    document.getElementById("order-now-btn").addEventListener("click", () => {
+      const qty = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+      DB.addToCart(product.id, qty, selectedColor);
+      window.location.href = "checkout.html";
+    });
+  }
+
+  render();
+</script>
+</body>
+</html>

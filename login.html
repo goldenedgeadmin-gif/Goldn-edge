@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .signin-status{display:flex;flex-direction:column;align-items:center;gap:12px;margin:22px 0;}
+  .signin-status .spinner{
+    width:34px;height:34px;border-radius:50%;
+    border:3px solid var(--border);border-top-color:var(--gold);
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .signin-retry{display:none;}
+  .signin-retry.show{display:block;}
+</style>
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<main>
+  <div class="panel center">
+    <img src="assets/logo.png" alt="Golden Edge" style="height:56px;margin:0 auto 14px;">
+    <h2>Welcome to Golden Edge</h2>
+    <p class="sub">Sign in to check out and track orders.</p>
+
+    <div class="signin-status" id="signin-status">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="google-btn-container" style="display:flex;justify-content:center;margin:18px 0;"></div>
+
+    <p class="signin-retry" id="signin-retry" style="margin-top:0;">Sign-in didn't start — tap the button above.</p>
+
+    <a href="index.html" class="btn btn-outline btn-block mt-24">Continue without signing in</a>
+  </div>
+</main>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  function hideSplash() {
+    const el = document.getElementById("splashScreen");
+    if (!el) return;
+    setTimeout(() => {
+      el.classList.add("splash-hide");
+      setTimeout(() => el.remove(), 500);
+    }, 650);
+  }
+
+  // This is the exact value Google's sign-in script checks against your
+  // Authorized JavaScript origins list — it should match what's in your
+  // browser's address bar, but some local-preview tools can report a
+  // different origin internally than what they display. Check this
+  // against Google Cloud Console if sign-in keeps failing.
+  console.log("GOLDEN EDGE — this page's real origin (what Google checks):", window.location.origin);
+
+  const existingUser = Auth.currentUser();
+  const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+  if (existingUser) {
+    // Already signed in — no need to see the sign-in page at all.
+    window.location.href = redirectParam || "index.html";
+  }
+
+  function goAfterLogin() {
+    window.location.href = redirectParam || "index.html";
+  }
+
+  function showRetry() {
+    document.getElementById("signin-status").style.display = "none";
+    document.getElementById("signin-retry").classList.add("show");
+  }
+
+  window.addEventListener("load", () => {
+    hideSplash();
+    setTimeout(() => {
+      Auth.startGoogleSignIn(
+        "google-btn-container",
+        (response) => { Auth.handleGoogleCredential(response, goAfterLogin); },
+        () => { showRetry(); }
+      );
+    }, 400);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications — Golden Edge</title>
+<link rel="icon" href="assets/logo.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="splashScreen" class="splash-screen">
+  <img src="assets/loading.png" alt="Golden Edge — Fast delivery, easy shopping">
+  <div class="splash-spinner"></div>
+  <div class="splash-text">Golden Edge</div>
+</div>
+
+<div id="site-header"></div>
+
+<main class="orders-wrap">
+  <h2 class="section-title">🔔 Notifications</h2>
+  <div id="notif-list"></div>
+  <div class="empty-state hidden" id="notif-empty">
+    <h3>No notifications yet</h3>
+    <p>Announcements from Golden Edge will show up here.</p>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="js/config.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/store.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  const user = Auth.requireLogin();
+
+  function notifCard(n) {
+    return `
+      <div class="order-card">
+        <div class="order-head">
+          <strong>${n.title}</strong>
+          <span class="text-slate" style="font-size:.78rem;">${new Date(n.createdAt).toLocaleString()}</span>
+        </div>
+        <p style="font-size:.88rem;margin:0;">${n.message}</p>
+      </div>
+    `;
+  }
+
+  function render() {
+    if (!user) return;
+    const notifications = DB.getNotificationsForUser(user.email);
+    const list = document.getElementById("notif-list");
+    const empty = document.getElementById("notif-empty");
+    if (notifications.length === 0) {
+      list.innerHTML = "";
+      empty.classList.remove("hidden");
+    } else {
+      empty.classList.add("hidden");
+      list.innerHTML = notifications.map(notifCard).join("");
+    }
+    DB.markAllNotificationsRead(notifications.map(n => n.id));
+  }
+
+  render();
+</script>
+</body>
+</html>
